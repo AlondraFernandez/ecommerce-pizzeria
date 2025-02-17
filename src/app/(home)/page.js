@@ -5,23 +5,22 @@ import { motion } from "framer-motion"; // Animaciones
 const HomePage = () => {
   return (
     <div className="home">
-      {/* Banner principal */}
-        <section 
-          className="relative h-[500px] bg-cover bg-center flex items-center justify-center text-white text-center"
-          style={{ backgroundImage: 'url("/new-banner-image.jpg")' }}
+      <section 
+        className="relative h-[500px] bg-cover bg-center flex items-center justify-center text-dark text-center"
+        style={{ backgroundImage: 'url(/img/background.png)' }} // Imagen de fondo
+      >
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          transition={{ duration: 0.8 }}
+          className="bg-black bg-opacity-50 p-6 rounded-lg"
         >
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.8 }}
-            className="bg-black bg-opacity-50 p-6 rounded-lg"
-          >
-            <h1 className="text-5xl font-bold text-yellow-400">¡Bienvenidos a Pizzeria Jope!</h1>
-            <p className="text-lg mt-2 text-yellow-200">Las pizzas más deliciosas te esperan</p>
-          </motion.div>
-        </section>
+          <h1 className="text-5xl font-bold text-yellow-400">¡Bienvenidos a Pizzeria Jope!</h1>
+          <p className="text-lg mt-2 text-yellow-200">Las pizzas más deliciosas te esperan</p>
+        </motion.div>
+      </section>
 
-        {/* Sección destacada */}
+      {/* Sección destacada */}
       <section className="py-16 bg-gradient-to-r from-yellow-400 via-red-500 to-red-600 text-center text-white">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }} 
@@ -61,3 +60,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
