@@ -4,6 +4,7 @@ import { db } from "../lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useCart } from "../context/CartContext"; // Importamos el contexto
 import Image from "next/image";
+import Swal from "sweetalert2";
 
 const ProductosPage = () => {
   const [productos, setProductos] = useState([]);
@@ -56,23 +57,29 @@ const ProductosPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {productosFiltrados.map((producto) => (
           <div key={producto.id}
-            // Aseguramos que cada producto tenga una key única
-                      className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
-                    >
-                      <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
-                      <Image
-                        src={producto.imagen}
-                        alt={producto.Nombre}
-                        width={300} // Ancho en píxeles
-                        height={200} // Alto en píxeles
-                        className="w-full h-48 object-cover mb-4"
-                      />
-                      <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
-                      <p className="text-lg font-semibold text-gray-900 mb-2">${producto.precio}</p>
-                      <p className="text-sm text-gray-600 mb-4">Stock: {producto.stock}</p>
-                      <button
-                        onClick={() => {
-                agregarAlCarrito(producto); // Agrega al carrito
+            className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
+            <Image
+              src={producto.imagen}
+              alt={producto.Nombre}
+              width={300}
+              height={200}
+              className="w-full h-48 object-cover mb-4"
+            />
+            <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
+            <p className="text-lg font-semibold text-gray-900 mb-2">${producto.precio}</p>
+            <p className="text-sm text-gray-600 mb-4">Stock: {producto.stock}</p>
+            <button
+              onClick={() => {
+                agregarAlCarrito(producto);
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Agregado al carrito',
+                  text: `${producto.Nombre} ha sido agregado al carrito.`,
+                  showConfirmButton: false,
+                  timer: 1500
+                });
                 console.log("Producto agregado al carrito:", producto);
               }}
               className="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-500 transition-colors duration-300"

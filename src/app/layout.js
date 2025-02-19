@@ -3,6 +3,7 @@ import "./globals.css";
 import { CartProvider } from "./context/CartContext"; // Importamos el contexto de carrito
 import { AuthProvider } from "./context/AuthContext"; // Asegúrate de importar el AuthProvider correctamente
 import Header from "./components/Header"; // Importamos el Header
+import Footer from "./components/Footer";
 
 export const metadata = {
   title: "Pizzería",
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
             <main>{children}</main>
           </CartProvider>
         </AuthProvider>
+        <Footer />
       </body>
     </html>
   );

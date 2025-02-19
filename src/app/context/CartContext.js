@@ -39,11 +39,19 @@ export const CartProvider = ({ children }) => {
     setCarrito((prevCarrito) => 
       prevCarrito.map(item =>
         item.id === id
-          ? { ...item, cantidad: Math.max(cantidad, 1) }
+          ? { 
+              ...item, 
+              cantidad: item.categoria === "pizzas" 
+              ? Math.max(cantidad, 0.5) 
+              : item.categoria === "empanadas" 
+                ? Math.max(cantidad, 3) 
+                : Math.max(cantidad, 1)
+            }
           : item
       )
     );
   };
+  
 
   const eliminarProducto = (id) => {
     setCarrito((prevCarrito) => 
