@@ -57,6 +57,7 @@ const ProductosPage = () => {
         {productosFiltrados.map((producto) => (
           <div key={producto.id} className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
+            <img src={producto.imagen} alt={producto.Nombre} className="w-full h-48 object-cover mb-4" />
             <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
             <p className="text-lg font-semibold text-gray-900 mb-2">${producto.precio}</p>
             <p className="text-sm text-gray-600 mb-4">Stock: {producto.stock}</p>
