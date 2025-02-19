@@ -13,7 +13,7 @@ const UserInfo = () => {
       {user ? (
         <div>
           <p>Bienvenido, {user.displayName}!</p>
-          <img src={user.photoURL} alt={user.displayName} />
+          <image src={user.photoURL} alt={user.displayName} />
         </div>
       ) : (
         <p>No has iniciado sesión.</p>

@@ -1,4 +1,3 @@
-// src/app/productos/page.js
 "use client";
 import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
@@ -46,8 +45,8 @@ const ProductosPage = () => {
         onChange={(e) => setCategoriaSeleccionada(e.target.value)}
       >
         <option value="">Selecciona una categoría</option>
-        {categorias.map((categoria) => (
-          <option key={categoria} value={categoria}>
+        {categorias.map((categoria, index) => (
+          <option key={index} value={categoria}>
             {categoria}
           </option>
         ))}
@@ -55,14 +54,21 @@ const ProductosPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {productosFiltrados.map((producto) => (
-          <div key={producto.id} className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
-            <img src={producto.imagen} alt={producto.Nombre} className="w-full h-48 object-cover mb-4" />
-            <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
-            <p className="text-lg font-semibold text-gray-900 mb-2">${producto.precio}</p>
-            <p className="text-sm text-gray-600 mb-4">Stock: {producto.stock}</p>
-            <button
-              onClick={() => {
+          <div key={producto.id}
+            // Aseguramos que cada producto tenga una key única
+                      className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    >
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
+                      <image
+                        src={producto.imagen}
+                        alt={producto.Nombre}
+                        className="w-full h-48 object-cover mb-4"
+                      />
+                      <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
+                      <p className="text-lg font-semibold text-gray-900 mb-2">${producto.precio}</p>
+                      <p className="text-sm text-gray-600 mb-4">Stock: {producto.stock}</p>
+                      <button
+                        onClick={() => {
                 agregarAlCarrito(producto); // Agrega al carrito
                 console.log("Producto agregado al carrito:", producto);
               }}
@@ -78,3 +84,4 @@ const ProductosPage = () => {
 };
 
 export default ProductosPage;
+
