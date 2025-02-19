@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useCart } from "../context/CartContext"; // Importamos el contexto
+import Image from "next/image";
 
 const ProductosPage = () => {
   const [productos, setProductos] = useState([]);
@@ -59,9 +60,11 @@ const ProductosPage = () => {
                       className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
                     >
                       <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
-                      <image
+                      <Image
                         src={producto.imagen}
                         alt={producto.Nombre}
+                        width={300} // Ancho en píxeles
+                        height={200} // Alto en píxeles
                         className="w-full h-48 object-cover mb-4"
                       />
                       <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
