@@ -23,46 +23,47 @@ const HomePage = () => {
       </section>
 
       {/* About Section */}
-      <section className="py-20 bg-gradient-to-r from-yellow-400 via-red-500 to-red-600 text-center text-white">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-3xl mx-auto"
-        >
-          <h2 className="text-5xl font-bold">Sabor que Enamora</h2>
-          <p className="text-lg mt-4">
-            Nuestras pizzas están hechas con ingredientes frescos y una receta tradicional que deleita en cada bocado.
-          </p>
-        </motion.div>
-      </section>
+        <section className="py-20 bg-gradient-to-r from-yellow-400 via-red-500 to-red-600 text-center text-white gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto"
+          >
+            <h2 className="text-5xl font-bold">Sabor que Enamora</h2>
+            <p className="text-lg mt-4">
+          Nuestras pizzas están hechas con ingredientes frescos y una receta tradicional que deleita en cada bocado.
+            </p>
+          </motion.div>
+        </section>
 
-      {/* Featured Products Section */}
-      <section className="py-16 bg-gray-100 text-center">
-        <motion.h3
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-4xl font-bold text-gray-800 mb-6"
-        >
-        </motion.h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {["Masa artesanal", "Ingredientes frescos", "Sabor inigualable", "Pedinos y te lo llevamos donde estes"].map((title, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: index * 0.2 }}
-              className="bg-white shadow-lg rounded-lg overflow-hidden p-6"
-            >
-              <h4 className="text-xl font-bold text-gray-800 py-4">{title}</h4>
-              <p className="text-gray-600">Disfruta de la mejor calidad en cada bocado.</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+        {/* Featured Products Section */}
+        <section className="py-16 bg-gray-100 text-center">
+          <motion.h3
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl font-bold text-gray-800 mb-6"
+          >
+            ¿Por qué elegirnos?
+          </motion.h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {["Masa artesanal", "Ingredientes frescos", "Sabor inigualable", "Pedinos y te lo llevamos donde estes"].map((title, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: index * 0.2 }}
+                className="bg-white shadow-lg rounded-lg overflow-hidden p-6 transform hover:scale-105 transition-transform duration-300"
+              >
+                <h4 className="text-xl font-bold text-red-600 py-4">{title}</h4>
+                <p className="text-gray-600">Disfruta de la mejor calidad en cada bocado.</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
-      {/* Call to Action */}
+        {/* Call to Action */}
       <section className="bg-red-800 text-white text-center py-14">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
