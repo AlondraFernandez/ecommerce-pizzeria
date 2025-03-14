@@ -1,15 +1,17 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { useCart } from "../context/CartContext"; // Importamos el contexto
+import { useCart } from "../context/CartContext";
 import Image from "next/image";
 import Swal from "sweetalert2";
+import { motion } from "framer-motion";
 
 const ProductosPage = () => {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const { agregarAlCarrito } = useCart(); // Usamos la función para agregar al carrito
+  const { agregarAlCarrito } = useCart();
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
 
   useEffect(() => {
@@ -22,13 +24,11 @@ const ProductosPage = () => {
       }));
       setProductos(listaProductos);
 
-      // Obtener categorías únicas
       const categoriasUnicas = [
         ...new Set(listaProductos.map((producto) => producto.categoria)),
       ];
       setCategorias(categoriasUnicas);
     };
-
     obtenerProductos();
   }, []);
 
@@ -37,56 +37,64 @@ const ProductosPage = () => {
     : productos;
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 p-8">
-      <h1 className="text-4xl font-extrabold text-center text-white mb-8">Nuestros Productos</h1>
+    <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-gray-800 p-8 text-white">
+      <h1 className="text-5xl font-extrabold text-center mb-8 tracking-wide text-red-500">
+        Nuestro Menú 🍕
+      </h1>
 
-      {/* Filtro de categorías */}
-      <select
-        className="mb-8 p-2 rounded-md"
-        value={categoriaSeleccionada}
-        onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-      >
-        <option value="">Selecciona una categoría</option>
-        {categorias.map((categoria, index) => (
-          <option key={index} value={categoria}>
-            {categoria}
-          </option>
-        ))}
-      </select>
+      <div className="flex justify-center mb-8">
+        <select
+          className="p-3 bg-gray-700 text-white rounded-lg shadow-md border border-gray-600 focus:outline-none"
+          value={categoriaSeleccionada}
+          onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+        >
+          <option value="">Todas las categorías</option>
+          {categorias.map((categoria, index) => (
+            <option key={index} value={categoria}>
+              {categoria}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {productosFiltrados.map((producto) => (
-          <div key={producto.id}
-            className="bg-white border border-gray-200 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
+          <motion.div
+            key={producto.id}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="bg-gray-900 p-6 rounded-lg shadow-lg hover:scale-105 transition-transform duration-300"
           >
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{producto.Nombre}</h2>
-            <Image
-              src={producto.imagen}
-              alt={producto.Nombre}
-              width={300}
-              height={200}
-              className="w-full h-48 object-cover mb-4"
-            />
-            <p className="text-gray-700 mb-4">{producto.Descripcion}</p>
-            <p className="text-lg font-semibold text-gray-900 mb-2">${producto.precio}</p>
-            <p className="text-sm text-gray-600 mb-4">Stock: {producto.stock}</p>
+            <h2 className="text-2xl font-bold text-red-400 mb-2 text-center">{producto.Nombre}</h2>
+            <div className="w-full h-48 relative overflow-hidden rounded-md">
+              <Image
+                src={producto.imagen}
+                alt={producto.Nombre}
+                layout="fill"
+                objectFit="cover"
+                className="rounded-md hover:scale-110 transition-transform duration-300"
+              />
+            </div>
+            <p className="text-gray-300 mt-4 text-center">{producto.Descripcion}</p>
+            <p className="text-lg font-semibold text-red-400 mt-2 text-center">${producto.precio}</p>
+            <p className="text-sm text-gray-400 text-center">Stock: {producto.stock}</p>
             <button
               onClick={() => {
                 agregarAlCarrito(producto);
                 Swal.fire({
-                  icon: 'success',
-                  title: 'Agregado al carrito',
+                  icon: "success",
+                  title: "Agregado al carrito",
                   text: `${producto.Nombre} ha sido agregado al carrito.`,
                   showConfirmButton: false,
-                  timer: 1500
+                  timer: 1500,
                 });
-                console.log("Producto agregado al carrito:", producto);
               }}
-              className="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-500 transition-colors duration-300"
+              className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500 transition duration-300"
             >
               Agregar al carrito
             </button>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
