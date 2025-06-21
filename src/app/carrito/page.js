@@ -11,7 +11,7 @@ const CarritoPage = () => {
   const [nombre, setNombre] = useState("");
 
   const total = carrito.reduce((acc, producto) => acc + producto.precio * producto.cantidad, 0);
-  const costoDelivery = metodoEntrega === "delivery" ? 500 : 0; // Costo extra si es delivery
+  const costoDelivery = metodoEntrega === "delivery" ? 800 : 0; // Costo extra si es delivery
 
   const enviarPedido = () => {
     if (metodoEntrega === "delivery" && !direccion.trim()) {
@@ -38,7 +38,7 @@ const CarritoPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-800 text-white py-8 px-4">
-      <h1 className="text-4xl font-extrabold text-center text-blue-600 mb-6">Tu Carrito</h1>
+      <h1 className="text-4xl font-extrabold text-center text-red-600 mb-6">Tu Carrito</h1>
       {carrito.length === 0 ? (
         <p className="text-center text-gray-400">No hay productos en el carrito.</p>
       ) : (

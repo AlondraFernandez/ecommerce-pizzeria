@@ -56,7 +56,7 @@ const HomePage = () => {
               Ver Menú
             </motion.a>
             <motion.a
-              href="/comprar"
+              href="/productos"
               className="bg-white text-red-600 px-8 py-4 rounded-full text-lg font-bold hover:bg-gray-200 transition"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
