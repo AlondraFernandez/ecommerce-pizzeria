@@ -1,120 +1,176 @@
 "use client";
 
-import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useState } from "react";
 import Swal from "sweetalert2";
 
 const CarritoPage = () => {
   const { carrito, actualizarCantidad, eliminarProducto } = useCart();
-  const [metodoEntrega, setMetodoEntrega] = useState("retiro"); // Default: Retiro en local
+  const [metodoEntrega, setMetodoEntrega] = useState("local");
   const [direccion, setDireccion] = useState("");
   const [nombre, setNombre] = useState("");
+  const [metodoPago, setMetodoPago] = useState("efectivo");
 
-  const total = carrito.reduce((acc, producto) => acc + producto.precio * producto.cantidad, 0);
-  const costoDelivery = metodoEntrega === "delivery" ? 800 : 0; // Costo extra si es delivery
+  const precioDelivery = 800;
 
-  const enviarPedido = () => {
-    if (metodoEntrega === "delivery" && !direccion.trim()) {
-      Swal.fire("Error", "Por favor, ingresa una dirección para el delivery", "error");
+  const total = carrito.reduce((acc, producto) => {
+    const cantidad = parseFloat(producto.cantidad) || 0;
+    return acc + producto.precio * cantidad;
+  }, 0);
+
+  const totalConDelivery = metodoEntrega === "delivery" ? total + precioDelivery : total;
+
+  const handleEnviarPedido = () => {
+    if (metodoEntrega === "delivery" && direccion.trim() === "") {
+      Swal.fire({
+        icon: "error",
+        title: "Dirección requerida",
+        text: "Por favor, ingresa una dirección para el envío.",
+      });
       return;
     }
-    if (metodoEntrega === "retiro" && !nombre.trim()) {
-      Swal.fire("Error", "Por favor, ingresa tu nombre para el retiro", "error");
+
+    if (metodoEntrega === "local" && nombre.trim() === "") {
+      Swal.fire({
+        icon: "error",
+        title: "Nombre requerido",
+        text: "Por favor, ingresa tu nombre para el retiro en el local.",
+      });
       return;
     }
 
-    let mensaje = `Hola, quiero hacer un pedido:\n`;
-    carrito.forEach((producto) => {
-      mensaje += `- ${producto.Nombre} x${producto.cantidad} - $${producto.precio * producto.cantidad}\n`;
-    });
-    mensaje += `Total: $${total + costoDelivery}\n`;
-    mensaje += metodoEntrega === "delivery" ? `Dirección: ${direccion}\n` : `Nombre: ${nombre}\n`;
-    mensaje += `Método de entrega: ${metodoEntrega === "delivery" ? "Delivery" : "Retiro en local"}`;
-    
-    // Aquí actualizamos el número de teléfono de WhatsApp
-    const url = `https://wa.me/542302344813?text=${encodeURIComponent(mensaje)}`;
+    const detalles = carrito.map((item) => {
+      const cantidad = parseFloat(item.cantidad) || 0;
+      const subtotal = cantidad * item.precio;
+      return `${item.Nombre} x ${cantidad} = $${subtotal}`;
+    }).join("\n");
+
+    const mensaje = `Hola! Quiero hacer un pedido:\n\n${detalles}\n\nTotal: $${totalConDelivery}${
+      metodoEntrega === "delivery" ? ` (incluye $${precioDelivery} de delivery)` : ""
+    }\nMétodo de entrega: ${
+      metodoEntrega === "delivery" ? `Delivery a ${direccion}` : `Retiro en local - Nombre: ${nombre}`
+    }\nMétodo de pago: ${
+      metodoPago === "efectivo" ? "Efectivo" : "Transferencia - Alias: pizzeria.eljope"
+    }`;
+
+    const url = `https://wa.me/5492302344813?text=${encodeURIComponent(mensaje)}`;
     window.open(url, "_blank");
   };
 
   return (
-    <div className="min-h-screen bg-gray-800 text-white py-8 px-4">
-      <h1 className="text-4xl font-extrabold text-center text-red-600 mb-6">Tu Carrito</h1>
+    <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-gray-800 text-white p-6">
+      <h1 className="text-4xl font-bold mb-6 text-center text-yellow-400">Tu Carrito 🛒</h1>
+
       {carrito.length === 0 ? (
-        <p className="text-center text-gray-400">No hay productos en el carrito.</p>
+        <p className="text-center text-gray-400">El carrito está vacío.</p>
       ) : (
-        <div className="bg-white text-gray-800 shadow-lg rounded-lg p-6 max-w-4xl mx-auto">
-          <ul className="divide-y divide-gray-200">
-            {carrito.map((producto) => (
-              <li key={producto.id} className="py-4 flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-semibold">{producto.Nombre}</h2>
-                  <p className="text-gray-500">${producto.precio} x {producto.cantidad}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => actualizarCantidad(producto.id, producto.cantidad - 1)} 
-                    disabled={producto.cantidad <= 1}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 transition"
+        <div className="space-y-6">
+          {carrito.map((producto) => {
+            const cantidad = parseFloat(producto.cantidad) || 0;
+            const paso = producto.categoria === "pizzas" ? 0.5 : 1;
+            const minimo = producto.categoria === "pizzas" ? 0.5 : 1;
+            return (
+              <div key={producto.id} className="bg-red-900 rounded-lg p-4 shadow-md">
+                <h2 className="text-2xl font-bold text-yellow-300">{producto.Nombre}</h2>
+                <p className="text-white">${producto.precio} x {cantidad}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <button
+                    onClick={() => actualizarCantidad(producto.id, Math.max(cantidad - paso, minimo))}
+                    className="bg-yellow-400 text-black px-3 py-1 rounded font-bold hover:bg-yellow-300"
                   >
                     ➖
                   </button>
-                  <button 
-                    onClick={() => actualizarCantidad(producto.id, producto.cantidad + 1)} 
-                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+                  <span className="text-lg font-semibold text-white">{cantidad}</span>
+                  <button
+                    onClick={() => actualizarCantidad(producto.id, cantidad + paso)}
+                    className="bg-yellow-400 text-black px-3 py-1 rounded font-bold hover:bg-yellow-300"
                   >
                     ➕
                   </button>
-                  <button 
-                    onClick={() => eliminarProducto(producto.id)} 
-                    className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition"
+                  <button
+                    onClick={() => eliminarProducto(producto.id)}
+                    className="ml-auto bg-black text-white border border-yellow-400 px-3 py-1 rounded hover:bg-red-700"
                   >
                     Eliminar
                   </button>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold">${producto.precio * producto.cantidad}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+            );
+          })}
 
-          <div className="mt-8">
-            <h2 className="text-xl font-bold mb-3">Método de Entrega</h2>
-            <select
-              className="w-full p-4 border border-gray-300 rounded-md bg-gray-100 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={metodoEntrega}
-              onChange={(e) => setMetodoEntrega(e.target.value)}
-            >
-              <option value="retiro">Retiro en local</option>
-              <option value="delivery">Delivery (+$800)</option>
-            </select>
+          <div className="bg-gray-800 p-4 rounded shadow">
+            <h3 className="text-xl text-yellow-400 font-bold mb-2">Método de Entrega</h3>
+            <div className="space-x-4 text-white">
+              <label>
+                <input
+                  type="radio"
+                  value="local"
+                  checked={metodoEntrega === "local"}
+                  onChange={(e) => setMetodoEntrega(e.target.value)}
+                /> Retiro en el local
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  value="delivery"
+                  checked={metodoEntrega === "delivery"}
+                  onChange={(e) => setMetodoEntrega(e.target.value)}
+                /> Delivery (+$800)
+              </label>
+            </div>
+
+            {metodoEntrega === "delivery" ? (
+              <input
+                type="text"
+                placeholder="Dirección de entrega"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                className="mt-3 w-full p-2 rounded bg-black text-white border border-yellow-500"
+              />
+            ) : (
+              <input
+                type="text"
+                placeholder="Nombre para retiro"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                className="mt-3 w-full p-2 rounded bg-black text-white border border-yellow-500"
+              />
+            )}
           </div>
 
-          {metodoEntrega === "delivery" ? (
-            <input
-              type="text"
-              placeholder="Ingresa tu dirección"
-              className="w-full p-4 mt-4 border border-gray-300 rounded-md bg-gray-100 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-            />
-          ) : (
-            <input
-              type="text"
-              placeholder="Ingresa tu nombre"
-              className="w-full p-4 mt-4 border border-gray-300 rounded-md bg-gray-100 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-            />
-          )}
+          <div className="bg-gray-800 p-4 rounded shadow mt-4">
+            <h3 className="text-xl text-yellow-400 font-bold mb-2">Método de Pago</h3>
+            <div className="space-x-4 text-white">
+              <label>
+                <input
+                  type="radio"
+                  value="efectivo"
+                  checked={metodoPago === "efectivo"}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                /> Efectivo
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  value="transferencia"
+                  checked={metodoPago === "transferencia"}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                /> Transferencia
+              </label>
+            </div>
+            {metodoPago === "transferencia" && (
+              <p className="mt-2 text-sm text-yellow-300">Alias: pizzeria.eljope
+              POR FAVOR ENVIE SU COMPROBANTE</p>
+            )}
+          </div>
 
-          <div className="mt-6 flex justify-between items-center">
-            <p className="text-lg font-semibold text-gray-800">Total: ${total + costoDelivery}</p>
-            <button 
-              onClick={enviarPedido} 
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 transition"
+          <div className="text-right mt-6">
+            <p className="text-2xl text-yellow-400 font-bold mb-4">Total: ${totalConDelivery}</p>
+            <button
+              onClick={handleEnviarPedido}
+              className="bg-yellow-400 text-black font-bold px-6 py-3 rounded-lg hover:bg-yellow-300 transition"
             >
-              Enviar Pedido por WhatsApp
+              Enviar pedido por WhatsApp
             </button>
           </div>
         </div>
@@ -124,3 +180,4 @@ const CarritoPage = () => {
 };
 
 export default CarritoPage;
+

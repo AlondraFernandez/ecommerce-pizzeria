@@ -19,21 +19,22 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem("carrito", JSON.stringify(carrito));
   }, [carrito]);
+const agregarAlCarrito = (producto) => {
+  setCarrito((prevCarrito) => {
+    const productoExistente = prevCarrito.find(item => item.id === producto.id);
+    if (productoExistente) {
+      return prevCarrito.map(item =>
+        item.id === producto.id
+          ? { ...item, cantidad: item.cantidad + producto.cantidad }
+          : item
+      );
+    } else {
+      return [...prevCarrito, { ...producto }];
+    }
+  });
+};
 
-  const agregarAlCarrito = (producto) => {
-    setCarrito((prevCarrito) => {
-      const productoExistente = prevCarrito.find(item => item.id === producto.id);
-      if (productoExistente) {
-        return prevCarrito.map(item =>
-          item.id === producto.id
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      } else {
-        return [...prevCarrito, { ...producto, cantidad: 1 }];
-      }
-    });
-  };
+
 
   const actualizarCantidad = (id, cantidad) => {
     setCarrito((prevCarrito) => 

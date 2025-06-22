@@ -11,8 +11,10 @@ import { motion } from "framer-motion";
 const ProductosPage = () => {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const { agregarAlCarrito } = useCart();
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
+  const { agregarAlCarrito } = useCart();
+  const [contadorActivo, setContadorActivo] = useState(null);
+  const [cantidadSeleccionada, setCantidadSeleccionada] = useState({});
 
   useEffect(() => {
     const obtenerProductos = async () => {
@@ -35,6 +37,54 @@ const ProductosPage = () => {
   const productosFiltrados = categoriaSeleccionada
     ? productos.filter((producto) => producto.categoria === categoriaSeleccionada)
     : productos;
+
+  const abrirContador = (producto) => {
+    setContadorActivo(producto.id);
+    const minimo = producto.categoria === "pizzas" ? 0.5 : 1;
+    setCantidadSeleccionada((prev) => ({
+      ...prev,
+      [producto.id]: minimo,
+    }));
+  };
+
+  const cambiarCantidad = (producto, operacion) => {
+    let actual = cantidadSeleccionada[producto.id];
+    if (actual === undefined) actual = producto.categoria === "pizzas" ? 0.5 : 1;
+
+    let nuevaCantidad = actual;
+    if (producto.categoria === "pizzas") {
+      if (actual === 0.5 && operacion === "sumar") {
+        nuevaCantidad = 1.5;
+      } else {
+        nuevaCantidad = operacion === "sumar" ? actual + 1 : actual - 1;
+      }
+      if (nuevaCantidad < 0.5) nuevaCantidad = 0.5;
+    } else {
+      const minimo = producto.categoria === "empanadas" ? 3 : 1;
+      nuevaCantidad = operacion === "sumar" ? actual + 1 : actual - 1;
+      if (nuevaCantidad < minimo) nuevaCantidad = minimo;
+    }
+
+    setCantidadSeleccionada((prev) => ({
+      ...prev,
+      [producto.id]: nuevaCantidad,
+    }));
+  };
+
+  const confirmarAgregar = (producto) => {
+    const cantidad = cantidadSeleccionada[producto.id] || 1;
+    for (let i = 0; i < cantidad; i++) {
+      agregarAlCarrito(producto);
+    }
+    Swal.fire({
+      icon: "success",
+      title: "Agregado al carrito",
+      text: `${producto.Nombre} x ${cantidad} agregado.`,
+      showConfirmButton: false,
+      timer: 1500,
+    });
+    setContadorActivo(null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-gray-800 p-8 text-white">
@@ -64,9 +114,11 @@ const ProductosPage = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="bg-gray-900 p-6 rounded-lg shadow-lg hover:scale-105 transition-transform duration-300"
+            className="bg-gray-900 p-6 rounded-lg shadow-lg hover:scale-105 transition-transform duration-300 relative"
           >
-            <h2 className="text-2xl font-bold text-red-400 mb-2 text-center">{producto.Nombre}</h2>
+            <h2 className="text-2xl font-bold text-red-400 mb-2 text-center">
+              {producto.Nombre}
+            </h2>
             <div className="w-full h-48 relative overflow-hidden rounded-md">
               <Image
                 src={producto.imagen}
@@ -79,21 +131,66 @@ const ProductosPage = () => {
             <p className="text-gray-300 mt-4 text-center">{producto.Descripcion}</p>
             <p className="text-lg font-semibold text-red-400 mt-2 text-center">${producto.precio}</p>
             <p className="text-sm text-gray-400 text-center">Stock: {producto.stock}</p>
-            <button
-              onClick={() => {
-                agregarAlCarrito(producto);
-                Swal.fire({
-                  icon: "success",
-                  title: "Agregado al carrito",
-                  text: `${producto.Nombre} ha sido agregado al carrito.`,
-                  showConfirmButton: false,
-                  timer: 1500,
-                });
-              }}
-              className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500 transition duration-300"
-            >
-              Agregar al carrito
-            </button>
+
+            {contadorActivo === producto.id ? (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 flex flex-col items-center gap-2 bg-gray-800 p-5 rounded-xl shadow-xl border border-yellow-500"
+              >
+                <p className="text-sm text-gray-300 mb-1">Seleccioná la cantidad:</p>
+                <div className="flex items-center gap-6">
+                  <button
+                    className="bg-red-600 text-white px-4 py-2 rounded-full text-xl hover:bg-red-700"
+                    onClick={() => cambiarCantidad(producto, "restar")}
+                  >
+                    ➖
+                  </button>
+                  <div className="text-center">
+                    <span className="text-2xl font-bold block">
+                      {cantidadSeleccionada[producto.id] ??
+                        (producto.categoria === "pizzas" ? 0.5 : 1)}
+                    </span>
+                    <span className="text-sm text-gray-400">
+                      Total: $
+                      {(
+                        producto.precio *
+                        (cantidadSeleccionada[producto.id] ??
+                          (producto.categoria === "pizzas" ? 0.5 : 1))
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                  <button
+                    className="bg-green-600 text-white px-4 py-2 rounded-full text-xl hover:bg-green-700"
+                    onClick={() => cambiarCantidad(producto, "sumar")}
+                  >
+                    ➕
+                  </button>
+                </div>
+                <div className="flex gap-4 mt-4">
+                  <button
+                    onClick={() => confirmarAgregar(producto)}
+                    className="bg-yellow-500 px-6 py-2 rounded-full hover:bg-yellow-400 text-black font-semibold"
+                  >
+                    Confirmar
+                  </button>
+                  <button
+                    onClick={() => setContadorActivo(null)}
+                    className="text-sm text-gray-400 hover:text-white"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <button
+                onClick={() => abrirContador(producto)}
+                className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500 transition duration-300"
+              >
+                Agregar al carrito
+              </button>
+            )}
           </motion.div>
         ))}
       </div>
@@ -102,4 +199,3 @@ const ProductosPage = () => {
 };
 
 export default ProductosPage;
-
