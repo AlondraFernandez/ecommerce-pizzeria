@@ -160,7 +160,7 @@ const CarritoPage = () => {
             </div>
             {metodoPago === "transferencia" && (
               <p className="mt-2 text-sm text-yellow-300">Alias: pizzeria.eljope
-              POR FAVOR ENVIE SU COMPROBANTE</p>
+              POR FAVOR ENVIE SU COMPROBANTE,GRACIAS</p>
             )}
           </div>
 
