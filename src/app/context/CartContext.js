@@ -20,19 +20,23 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("carrito", JSON.stringify(carrito));
   }, [carrito]);
 const agregarAlCarrito = (producto) => {
+  const cantidadAAgregar = producto.cantidad ?? 1; // usa 1 si no vino cantidad
+
   setCarrito((prevCarrito) => {
     const productoExistente = prevCarrito.find(item => item.id === producto.id);
+
     if (productoExistente) {
       return prevCarrito.map(item =>
         item.id === producto.id
-          ? { ...item, cantidad: item.cantidad + producto.cantidad }
+          ? { ...item, cantidad: item.cantidad + cantidadAAgregar }
           : item
       );
     } else {
-      return [...prevCarrito, { ...producto }];
+      return [...prevCarrito, { ...producto, cantidad: cantidadAAgregar }];
     }
   });
 };
+
 
 
 

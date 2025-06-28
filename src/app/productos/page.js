@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs,doc,updateDoc } from "firebase/firestore";
 import { useCart } from "../context/CartContext";
 import Image from "next/image";
 import Swal from "sweetalert2";
@@ -48,43 +48,68 @@ const ProductosPage = () => {
   };
 
   const cambiarCantidad = (producto, operacion) => {
-    let actual = cantidadSeleccionada[producto.id];
-    if (actual === undefined) actual = producto.categoria === "pizzas" ? 0.5 : 1;
+  let actual = cantidadSeleccionada[producto.id];
+  const categoria = producto.categoria?.toLowerCase();
 
-    let nuevaCantidad = actual;
-    if (producto.categoria === "pizzas") {
-      if (actual === 0.5 && operacion === "sumar") {
-        nuevaCantidad = 1.5;
-      } else {
-        nuevaCantidad = operacion === "sumar" ? actual + 1 : actual - 1;
-      }
-      if (nuevaCantidad < 0.5) nuevaCantidad = 0.5;
-    } else {
-      const minimo = producto.categoria === "empanadas" ? 3 : 1;
-      nuevaCantidad = operacion === "sumar" ? actual + 1 : actual - 1;
-      if (nuevaCantidad < minimo) nuevaCantidad = minimo;
-    }
+  if (actual === undefined) actual = categoria === "pizzas" ? 0.5 : 1;
 
-    setCantidadSeleccionada((prev) => ({
-      ...prev,
-      [producto.id]: nuevaCantidad,
-    }));
-  };
+  let nuevaCantidad = actual;
 
-  const confirmarAgregar = (producto) => {
-    const cantidad = cantidadSeleccionada[producto.id] || 1;
-    for (let i = 0; i < cantidad; i++) {
-      agregarAlCarrito(producto);
-    }
+  if (categoria === "pizzas") {
+    nuevaCantidad = operacion === "sumar" ? actual + 0.5 : actual - 0.5;
+    if (nuevaCantidad < 0.5) nuevaCantidad = 0.5;
+  } else {
+    const minimo = categoria === "empanadas" ? 3 : 1;
+    nuevaCantidad = operacion === "sumar" ? actual + 1 : actual - 1;
+    if (nuevaCantidad < minimo) nuevaCantidad = minimo;
+  }
+
+  if (nuevaCantidad > producto.stock) nuevaCantidad = producto.stock;
+
+  setCantidadSeleccionada((prev) => ({
+    ...prev,
+    [producto.id]: Math.round(nuevaCantidad * 10) / 10,
+  }));
+};
+
+
+
+  const confirmarAgregar = async (producto) => {
+  const cantidad = cantidadSeleccionada[producto.id] || 1;
+
+  if (producto.stock < cantidad) {
     Swal.fire({
-      icon: "success",
-      title: "Agregado al carrito",
-      text: `${producto.Nombre} x ${cantidad} agregado.`,
-      showConfirmButton: false,
-      timer: 1500,
+      icon: "error",
+      title: "Stock insuficiente",
+      text: `Solo hay ${producto.stock} unidades disponibles.`,
     });
-    setContadorActivo(null);
-  };
+    return;
+  }
+
+  // Agregar al carrito UNA sola vez con la cantidad seleccionada
+  agregarAlCarrito({ ...producto, cantidad });
+
+  // Restar del stock en Firebase
+  const nuevoStock = producto.stock - cantidad;
+  const productoRef = doc(db, "productos", producto.id);
+  await updateDoc(productoRef, { stock: nuevoStock });
+
+  // Actualizar productos en estado
+  setProductos((prev) =>
+    prev.map((p) => (p.id === producto.id ? { ...p, stock: nuevoStock } : p))
+  );
+
+  Swal.fire({
+    icon: "success",
+    title: "Agregado al carrito",
+    text: `${producto.Nombre} x ${cantidad} agregado.`,
+    showConfirmButton: false,
+    timer: 1500,
+  });
+
+  setContadorActivo(null);
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-gray-800 p-8 text-white">
@@ -163,7 +188,8 @@ const ProductosPage = () => {
                   </div>
                   <button
                     className="bg-green-600 text-white px-4 py-2 rounded-full text-xl hover:bg-green-700"
-                    onClick={() => cambiarCantidad(producto, "sumar")}
+                    onClick={() => cambiarCantidad(producto, "sumar")} 
+                    
                   >
                     ➕
                   </button>
@@ -185,11 +211,15 @@ const ProductosPage = () => {
               </motion.div>
             ) : (
               <button
-                onClick={() => abrirContador(producto)}
-                className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500 transition duration-300"
-              >
-                Agregar al carrito
-              </button>
+    onClick={() => abrirContador(producto)}
+    disabled={producto.stock <= 0}
+    className={`mt-4 w-full px-4 py-2 rounded-lg transition duration-300
+      ${producto.stock <= 0 
+        ? "bg-gray-500 cursor-not-allowed text-white"
+        : "bg-red-600 hover:bg-red-500 text-white"}`}
+  >
+    {producto.stock <= 0 ? "Sin stock" : "Agregar al carrito"}
+  </button>
             )}
           </motion.div>
         ))}

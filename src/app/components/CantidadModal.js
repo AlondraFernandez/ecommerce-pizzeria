@@ -1,29 +1,32 @@
-// src/components/CantidadModal.js
 "use client";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 
 const CantidadModal = ({ producto, cerrar }) => {
   const { agregarAlCarrito } = useCart();
-  const [cantidad, setCantidad] = useState(
-    producto.categoria === "pizzas" ? 0.5 :
-    producto.categoria === "empanadas" ? 3 : 1
-  );
+
+  const esPizza = producto.categoria?.toLowerCase() === "pizzas";
+  const esEmpanada = producto.categoria?.toLowerCase() === "empanadas";
+
+  const [cantidad, setCantidad] = useState(() => {
+    if (esPizza) return 0.5;
+    if (esEmpanada) return 3;
+    return 1;
+  });
 
   const aumentar = () => {
-    setCantidad(prev =>
-      producto.categoria === "pizzas" ? (prev < 0.5 ? 0.5 : prev + 1) : prev + 1
+    setCantidad(prev => esPizza
+      ? Math.round((prev + 0.5) * 10) / 10
+      : prev + 1
     );
   };
 
   const disminuir = () => {
-    setCantidad(prev =>
-      producto.categoria === "pizzas"
-        ? Math.max(prev - 1, 0.5)
-        : producto.categoria === "empanadas"
-        ? Math.max(prev - 1, 3)
-        : Math.max(prev - 1, 1)
-    );
+    setCantidad(prev => {
+      if (esPizza) return Math.max(Math.round((prev - 0.5) * 10) / 10, 0.5);
+      if (esEmpanada) return Math.max(prev - 1, 3);
+      return Math.max(prev - 1, 1);
+    });
   };
 
   const confirmar = () => {
@@ -42,7 +45,9 @@ const CantidadModal = ({ producto, cerrar }) => {
           >
             ➖
           </button>
-          <span className="text-lg font-bold">{cantidad}</span>
+          <span className="text-lg font-bold">
+            {esPizza ? cantidad.toFixed(1) : cantidad}
+          </span>
           <button 
             onClick={aumentar} 
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
