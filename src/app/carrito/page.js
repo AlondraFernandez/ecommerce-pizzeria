@@ -11,7 +11,7 @@ const CarritoPage = () => {
   const [nombre, setNombre] = useState("");
   const [metodoPago, setMetodoPago] = useState("efectivo");
 
-  const precioDelivery = 800;
+  const precioDelivery = 1000;
 
   const total = carrito.reduce((acc, producto) => {
     const cantidad = parseFloat(producto.cantidad) || 0;
@@ -115,7 +115,7 @@ const CarritoPage = () => {
                   value="delivery"
                   checked={metodoEntrega === "delivery"}
                   onChange={(e) => setMetodoEntrega(e.target.value)}
-                /> Delivery (+$800)
+                /> Delivery (+$1000)
               </label>
             </div>
 
