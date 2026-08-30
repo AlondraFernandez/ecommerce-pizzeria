@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -10,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyB4vkqnB1AVRKRA7y7uczELvxpgcVPMJr8",
   authDomain: "ecommerce-pizzeria.firebaseapp.com",
   projectId: "ecommerce-pizzeria",
-  storageBucket: "ecommerce-pizzeria.appspot.com",
+  storageBucket: "ecommerce-pizzeria.firebasestorage.app",
   messagingSenderId: "457945495630",
   appId: "1:457945495630:web:1be2a44e18d1edd9b8ab1f"
 };
@@ -20,7 +21,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 const googleProvider = new GoogleAuthProvider();
 
-export { db, auth, googleProvider };
+export { db, auth, storage, googleProvider };
