@@ -110,11 +110,7 @@ function normalizarTexto(valor) {
 }
 
 
-function crearIdDesdeNombre(nombre) {
-  return normalizarTexto(nombre)
-    .replace(/[^a-z0-9 ]/g, "")
-    .replace(/\s+/g, "_");
-}
+
 
 
 function dinero(valor) {
@@ -440,47 +436,25 @@ export default function AdminPage() {
 
 
   /* ====================================================
-     PRODUCCIÓN
-  ==================================================== */
+   PRODUCCIÓN
+==================================================== */
 
-  const [
-    empleadas,
-    setEmpleadas,
-  ] = useState([]);
+const [
+  empleadas,
+  setEmpleadas,
+] = useState([]);
 
-  const [
-    producciones,
-    setProducciones,
-  ] = useState([]);
+const [
+  producciones,
+  setProducciones,
+] = useState([]);
 
-  const [
-    datosEmpleadas,
-    setDatosEmpleadas,
-  ] = useState({});
 
-  const [
-    guardandoEmpleado,
-    setGuardandoEmpleado,
-  ] = useState(null);
 
-  const [
-    marcandoPago,
-    setMarcandoPago,
-  ] = useState(null);
-
-  const [
-    nuevaEmpleada,
-    setNuevaEmpleada,
-  ] = useState({
-    nombre: "",
-    precioDocena: "",
-  });
-
-  const [
-    creandoEmpleada,
-    setCreandoEmpleada,
-  ] = useState(false);
-
+const [
+  marcandoPago,
+  setMarcandoPago,
+] = useState(null);
 
   /* ====================================================
      CONFIG SUCURSAL
@@ -2642,323 +2616,8 @@ setMovimientos(
     };
 
 
-  /* ====================================================
-     GUARDAR NOMBRE / PAGO EMPLEADA
-     (SE CONSERVA POR COMPATIBILIDAD)
-  ==================================================== */
+  
 
-  const guardarEmpleado =
-    async empleadaId => {
-
-      const datos =
-        datosEmpleadas[
-          empleadaId
-        ];
-
-
-      if (!datos) {
-        return;
-      }
-
-
-      const nombre =
-        String(
-          datos.nombre ||
-          ""
-        ).trim();
-
-
-      const precioDocena =
-        Number(
-          datos.precioDocena ||
-          0
-        );
-
-
-      if (!nombre) {
-
-        Swal.fire({
-          icon: "error",
-          title:
-            "Ingresá el nombre",
-        });
-
-        return;
-      }
-
-
-      if (
-        !Number.isFinite(
-          precioDocena
-        ) ||
-        precioDocena < 0
-      ) {
-
-        Swal.fire({
-          icon: "error",
-          title:
-            "Precio inválido",
-        });
-
-        return;
-      }
-
-
-      setGuardandoEmpleado(
-        empleadaId
-      );
-
-
-      try {
-
-        await setDoc(
-          doc(
-            db,
-            "configuracionProduccion",
-            empleadaId
-          ),
-
-          {
-            nombre,
-
-            empleada:
-              nombre,
-
-            precioDocena,
-
-            actualizadoEn:
-              serverTimestamp(),
-          },
-
-          {
-            merge: true,
-          }
-        );
-
-
-        Swal.fire({
-          icon: "success",
-          title:
-            "Datos guardados",
-          timer: 1000,
-          showConfirmButton:
-            false,
-        });
-
-      } catch (error) {
-
-        console.error(
-          error
-        );
-
-
-        Swal.fire({
-          icon: "error",
-          title:
-            "No se pudo guardar",
-        });
-
-      } finally {
-
-        setGuardandoEmpleado(
-          null
-        );
-
-      }
-
-    };
-
-
-  /* ====================================================
-     CREAR EMPLEADA LEGACY
-     El componente EmpleadasPanel tendrá la nueva versión
-     con sucursal + PIN.
-  ==================================================== */
-
-  const crearEmpleada =
-    async () => {
-
-      const nombre =
-        String(
-          nuevaEmpleada.nombre ||
-          ""
-        ).trim();
-
-
-      const precioDocena =
-        Number(
-          nuevaEmpleada.precioDocena ||
-          0
-        );
-
-
-      if (!nombre) {
-
-        Swal.fire({
-          icon: "error",
-          title:
-            "Ingresá el nombre",
-        });
-
-        return;
-      }
-
-
-      const empleadaId =
-        crearIdDesdeNombre(
-          nombre
-        );
-
-
-      if (!empleadaId) {
-        return;
-      }
-
-
-      setCreandoEmpleada(
-        true
-      );
-
-
-      try {
-
-        const referencia =
-          doc(
-            db,
-            "configuracionProduccion",
-            empleadaId
-          );
-
-
-        const snapshot =
-          await getDoc(
-            referencia
-          );
-
-
-        if (
-          snapshot.exists()
-        ) {
-
-          throw new Error(
-            "Ya existe una empleada con ese nombre."
-          );
-
-        }
-
-
-        await setDoc(
-          referencia,
-
-          {
-            empleadaId,
-
-            nombre,
-
-            empleada:
-              nombre,
-
-            precioDocena,
-
-            activa:
-              true,
-
-            creadoEn:
-              serverTimestamp(),
-
-            actualizadoEn:
-              serverTimestamp(),
-          }
-        );
-
-
-        setNuevaEmpleada({
-          nombre: "",
-          precioDocena: "",
-        });
-
-
-        Swal.fire({
-          icon: "success",
-          title:
-            "Empleada agregada",
-          timer: 1200,
-          showConfirmButton:
-            false,
-        });
-
-      } catch (error) {
-
-        console.error(
-          error
-        );
-
-
-        Swal.fire({
-          icon: "error",
-          title:
-            "No se pudo agregar",
-          text:
-            error?.message ||
-            "Volvé a intentar.",
-        });
-
-      } finally {
-
-        setCreandoEmpleada(
-          false
-        );
-
-      }
-
-    };
-
-
-  /* ====================================================
-     ACTIVAR / DESACTIVAR EMPLEADA LEGACY
-  ==================================================== */
-
-  const cambiarEstadoEmpleada =
-    async empleada => {
-
-      try {
-
-        await setDoc(
-          doc(
-            db,
-            "configuracionProduccion",
-            empleada.id
-          ),
-
-          {
-            activa:
-              !empleada.activa,
-
-            actualizadoEn:
-              serverTimestamp(),
-          },
-
-          {
-            merge: true,
-          }
-        );
-
-      } catch (error) {
-
-        console.error(
-          error
-        );
-
-
-        Swal.fire({
-          icon: "error",
-          title:
-            "No se pudo actualizar la empleada",
-        });
-
-      }
-
-    };
 
 
   /* ====================================================
