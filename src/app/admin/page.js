@@ -307,22 +307,32 @@ function fechaVentaAJS(venta) {
     }
 
 
-    const fecha =
-      new Date(
-        texto
-      );
+     if (
+  /^\d{4}-\d{2}-\d{2}$/.test(texto)
+) {
+  const [
+    anio,
+    mes,
+    dia,
+  ] = texto
+    .split("-")
+    .map(Number);
 
+  return new Date(
+    anio,
+    mes - 1,
+    dia
+  );
+}
 
-    if (
-      !isNaN(
-        fecha.getTime()
-      )
-    ) {
-      return fecha;
-    }
+const fecha =
+  new Date(texto);
+
+if (!isNaN(fecha)) {
+  return fecha;
+}
 
   }
-
 
   return null;
 }
@@ -382,6 +392,20 @@ export default function AdminPage() {
     setFiltroSucursal,
   ] = useState(
     "todas"
+  );
+
+  const [
+    fechaDesdeResumen,
+    setFechaDesdeResumen,
+  ] = useState(
+    fechaISO(new Date())
+  );
+
+  const [
+    fechaHastaResumen,
+    setFechaHastaResumen,
+  ] = useState(
+    fechaISO(new Date())
   );
 
   const [
@@ -1584,154 +1608,100 @@ setMovimientos(
      RESUMEN DE VENTAS
   ==================================================== */
 
-  const ventasValidas =
-    useMemo(
-      () =>
-        ventasFiltradas.filter(
-          venta =>
-            String(
-              venta.estado ||
-              ""
-            ).toLowerCase() !==
-            "cancelado"
-        ),
-      [
-        ventasFiltradas,
-      ]
-    );
+  /* ====================================================
+   VENTAS POR FECHA
+==================================================== */
+
+const ventasRango =
+  ventasFiltradas.filter(
+    venta => {
+      const fecha =
+        fechaVentaAJS(venta);
+
+      if (!fecha) {
+        return false;
+      }
+
+      const fechaVenta =
+        fechaISO(fecha);
+
+      return (
+        fechaVenta >=
+          fechaDesdeResumen &&
+        fechaVenta <=
+          fechaHastaResumen
+      );
+    }
+  );
 
 
-  const ventasHoy =
-    useMemo(
-      () =>
-        ventasValidas.filter(
-          esDeHoy
-        ),
-      [
-        ventasValidas,
-      ]
-    );
+const ventasActivasRango =
+  ventasRango.filter(
+    venta =>
+      String(
+        venta.estado ||
+        "Activo"
+      ).toLowerCase() !==
+      "cancelado"
+  );
 
 
-  const totalVentasHoy =
-    useMemo(
-      () =>
-        ventasHoy.reduce(
-          (
-            total,
-            venta
-          ) =>
-            total +
-            Number(
-              venta.total ||
-              venta.totalFinal ||
-              0
-            ),
-          0
-        ),
-      [
-        ventasHoy,
-      ]
-    );
+const totalRango =
+  ventasActivasRango.reduce(
+    (total, venta) =>
+      total +
+      Number(
+        venta.total ||
+        0
+      ),
+    0
+  );
 
 
-  const totalEfectivoHoy =
-    useMemo(
-      () =>
-        ventasHoy.reduce(
-          (
-            total,
-            venta
-          ) => {
-
-            const medio =
-              normalizarTexto(
-                venta.metodoPago ||
-                venta.formaPago ||
-                ""
-              );
+const mostradorRango =
+  ventasActivasRango.filter(
+    venta =>
+      (
+        venta.tipo ||
+        venta.type
+      ) ===
+      "local"
+  );
 
 
-            if (
-              medio.includes(
-                "efectivo"
-              )
-            ) {
-
-              return (
-                total +
-                Number(
-                  venta.total ||
-                  venta.totalFinal ||
-                  0
-                )
-              );
-
-            }
+const deliveryRango =
+  ventasActivasRango.filter(
+    venta =>
+      (
+        venta.tipo ||
+        venta.type
+      ) ===
+      "delivery"
+  );
 
 
-            return total;
-
-          },
-          0
-        ),
-      [
-        ventasHoy,
-      ]
-    );
-
-
-  const totalTransferenciaHoy =
-    useMemo(
-      () =>
-        ventasHoy.reduce(
-          (
-            total,
-            venta
-          ) => {
-
-            const medio =
-              normalizarTexto(
-                venta.metodoPago ||
-                venta.formaPago ||
-                ""
-              );
+const totalMostradorRango =
+  mostradorRango.reduce(
+    (total, venta) =>
+      total +
+      Number(
+        venta.total ||
+        0
+      ),
+    0
+  );
 
 
-            if (
-              medio.includes(
-                "transfer"
-              )
-            ) {
-
-              return (
-                total +
-                Number(
-                  venta.total ||
-                  venta.totalFinal ||
-                  0
-                )
-              );
-
-            }
-
-
-            return total;
-
-          },
-          0
-        ),
-      [
-        ventasHoy,
-      ]
-    );
-
-
-  const ticketPromedio =
-    ventasHoy.length > 0
-      ? totalVentasHoy /
-        ventasHoy.length
-      : 0;
+const totalDeliveryRango =
+  deliveryRango.reduce(
+    (total, venta) =>
+      total +
+      Number(
+        venta.total ||
+        0
+      ),
+    0
+  );
 
 
   /* ====================================================
@@ -3286,6 +3256,49 @@ setMovimientos(
                           filtroSucursal
                         ]?.nombre}
                   </p>
+                  <div className="mt-5 bg-[#F8F5EF] rounded-2xl p-4">
+  <div className="flex flex-col md:flex-row md:items-end gap-4">
+
+    <div className="flex-1">
+      <label className="block text-sm font-bold text-gray-600 mb-2">
+        📅 Desde
+      </label>
+
+      <input
+        type="date"
+        value={fechaDesdeResumen}
+        onChange={(e) =>
+          setFechaDesdeResumen(e.target.value)
+        }
+        className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-[#2F6B4F]"
+      />
+    </div>
+
+    <div className="flex-1">
+      <label className="block text-sm font-bold text-gray-600 mb-2">
+        📅 Hasta
+      </label>
+
+      <input
+        type="date"
+        value={fechaHastaResumen}
+        min={fechaDesdeResumen}
+        onChange={(e) =>
+          setFechaHastaResumen(e.target.value)
+        }
+        className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-[#2F6B4F]"
+      />
+    </div>
+
+  </div>
+
+  <p className="text-sm text-gray-500 mt-3">
+    Mostrando las ventas desde{" "}
+    <strong>{fechaDesdeResumen}</strong>{" "}
+    hasta{" "}
+    <strong>{fechaHastaResumen}</strong>
+  </p>
+</div>
 
                 </div>
 
@@ -3293,21 +3306,23 @@ setMovimientos(
                 <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
                   <TarjetaResumen
-                    titulo="Ventas hoy"
-                    valor={dinero(
-                      totalVentasHoy
-                    )}
-                    detalle={`${ventasHoy.length} ventas`}
-                    icono="💰"
+                    titulo="Total vendido"
+  valor={dinero(
+    totalRango
+  )}
+  detalle={`${ventasActivasRango.length} ventas`}
+  icono="💰"
                   />
 
                   <TarjetaResumen
-                    titulo="Ticket promedio"
-                    valor={dinero(
-                      ticketPromedio
-                    )}
-                    detalle="Promedio de hoy"
-                    icono="🧾"
+                     titulo="Ticket promedio"
+  valor={dinero(
+    ventasActivasRango.length > 0
+      ? totalRango / ventasActivasRango.length
+      : 0
+  )}
+  detalle="Promedio del período"
+  icono="🧾"
                   />
 
                   <TarjetaResumen
@@ -3348,8 +3363,22 @@ setMovimientos(
 
                         <b>
                           {dinero(
-                            totalEfectivoHoy
-                          )}
+  ventasActivasRango
+    .filter(
+      venta =>
+        String(
+          venta.metodoPago ||
+          venta.formaPago ||
+          venta.metodo ||
+          ""
+        ).toLowerCase() === "efectivo"
+    )
+    .reduce(
+      (total, venta) =>
+        total + Number(venta.total || 0),
+      0
+    )
+)}
                         </b>
                       </div>
 
@@ -3360,8 +3389,22 @@ setMovimientos(
 
                         <b>
                           {dinero(
-                            totalTransferenciaHoy
-                          )}
+  ventasActivasRango
+    .filter(
+      venta =>
+        String(
+          venta.metodoPago ||
+          venta.formaPago ||
+          venta.metodo ||
+          ""
+        ).toLowerCase() === "transferencia"
+    )
+    .reduce(
+      (total, venta) =>
+        total + Number(venta.total || 0),
+      0
+    )
+)}
                         </b>
                       </div>
 
@@ -3372,7 +3415,7 @@ setMovimientos(
 
                         <b className="text-xl text-[#2F6B4F]">
                           {dinero(
-                            totalVentasHoy
+                            totalRango
                           )}
                         </b>
                       </div>

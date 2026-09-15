@@ -803,10 +803,10 @@ Pedido: ${cantidad}`
 
 
         /* ==============================================
-           MENSAJE
-        =============================================== */
+   MENSAJE WHATSAPP
+============================================== */
 
-        const mensaje = `Hola! Quiero hacer un pedido en Pizzería Jope - ${sucursal.nombre}:
+const mensaje = `Hola! Quiero hacer un pedido en Pizzería Jope - ${sucursal.nombre}:
 
 Pedido: ${pedidoId}
 
@@ -817,8 +817,7 @@ ${detalles}
 
 Subtotal: $${dinero(subtotalCarrito)}
 ${
-  metodoEntrega ===
-  "delivery"
+  metodoEntrega === "delivery"
     ? `Delivery: $${dinero(precioDelivery)}`
     : ""
 }
@@ -826,15 +825,13 @@ ${
 TOTAL: $${dinero(totalConDelivery)}
 
 Entrega: ${
-  metodoEntrega ===
-  "delivery"
+  metodoEntrega === "delivery"
     ? `Delivery a ${direccion.trim()}`
     : "Retiro en local"
 }
 
 Pago: ${
-  metodoPago ===
-  "efectivo"
+  metodoPago === "efectivo"
     ? "Efectivo"
     : `Transferencia - Alias: ${sucursal.alias || "-"}`
 }
@@ -846,48 +843,82 @@ ${
 }`;
 
 
-        const url =
-          `https://wa.me/${
-            sucursal.whatsapp
-          }?text=${
-            encodeURIComponent(
-              mensaje
-            )
-          }`;
+/* ==============================================
+   WHATSAPP DE LA SUCURSAL
+============================================== */
+
+let numeroWhatsApp = String(
+  sucursal.whatsapp || ""
+).replace(/\D/g, "");
+
+/*
+   Si está guardado como número argentino sin
+   código de país, agregamos 54.
+*/
+if (
+  numeroWhatsApp.length === 10 &&
+  numeroWhatsApp.startsWith("9")
+) {
+  numeroWhatsApp = `54${numeroWhatsApp}`;
+}
+
+if (
+  numeroWhatsApp.length === 10
+) {
+  numeroWhatsApp = `549${numeroWhatsApp}`;
+}
+
+if (!numeroWhatsApp) {
+  throw new Error(
+    "La sucursal no tiene un número de WhatsApp configurado."
+  );
+}
 
 
-        /* ==============================================
-           LIMPIAR CARRITO
-        =============================================== */
+const url =
+  `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(
+    mensaje
+  )}`;
 
-        vaciarCarrito();
+
+/* ==============================================
+   LIMPIAR CARRITO
+============================================== */
+
+vaciarCarrito();
 
 
-        await Swal.fire({
-          icon:
-            "success",
+/* ==============================================
+   CONFIRMACIÓN
+============================================== */
 
-          title:
-            "Pedido confirmado",
+await Swal.fire({
+  icon: "success",
 
-          html:
-            metodoEntrega ===
-            "delivery"
-              ? `
-                <b>¡Listo!</b><br><br>
-                Tu pedido fue enviado al local y al repartidor.
-              `
-              : `
-                <b>¡Listo!</b><br><br>
-                Tu pedido quedó registrado para retirar en el local.
-              `,
+  title: "Pedido confirmado",
 
-          timer:
-            1800,
+  html:
+    metodoEntrega === "delivery"
+      ? `
+          <b>¡Listo!</b><br><br>
+          Tu pedido fue enviado al local y al repartidor.
+        `
+      : `
+          <b>¡Listo!</b><br><br>
+          Tu pedido quedó registrado para retirar en el local, por favor confirmar por whatsapp.
+        `,
 
-          showConfirmButton:
-            false,
-        });
+  timer: 1800,
+
+  showConfirmButton: false,
+});
+
+
+/* ==============================================
+   ABRIR WHATSAPP
+============================================== */
+
+window.location.href = url;
 
 
         window.open(
