@@ -479,7 +479,10 @@ const [
   marcandoPago,
   setMarcandoPago,
 ] = useState(null);
-
+const [
+  semanaHistorial,
+  setSemanaHistorial,
+] = useState("");
   /* ====================================================
      CONFIG SUCURSAL
   ==================================================== */
@@ -2233,7 +2236,421 @@ const totalDeliveryRango =
       ]
     );
 
+  /* ====================================================
+   HISTORIAL DE PRODUCCIÓN
+==================================================== */
 
+const semanasProduccion =
+  useMemo(
+    () => {
+
+      const mapa = {};
+
+      producciones.forEach(
+        produccion => {
+
+          if (
+            filtroSucursal !==
+              "todas" &&
+            produccion.sucursalId !==
+              filtroSucursal
+          ) {
+            return;
+          }
+
+          if (
+            !produccion.fecha
+          ) {
+            return;
+          }
+
+          let fecha;
+
+          try {
+
+            fecha =
+              typeof produccion
+                .fecha
+                .toDate ===
+              "function"
+                ? produccion
+                    .fecha
+                    .toDate()
+                : new Date(
+                    produccion.fecha
+                  );
+
+          } catch {
+            return;
+          }
+
+          if (
+            isNaN(
+              fecha.getTime()
+            )
+          ) {
+            return;
+          }
+
+          /*
+           * El ID de semana se calcula
+           * usando el lunes de esa semana.
+           */
+
+          const inicio =
+            new Date(fecha);
+
+          const dia =
+            inicio.getDay();
+
+          const diferencia =
+            dia === 0
+              ? 6
+              : dia - 1;
+
+          inicio.setDate(
+            inicio.getDate() -
+              diferencia
+          );
+
+          inicio.setHours(
+            0,
+            0,
+            0,
+            0
+          );
+
+          const fin =
+            new Date(inicio);
+
+          fin.setDate(
+            fin.getDate() + 6
+          );
+
+          fin.setHours(
+            23,
+            59,
+            59,
+            999
+          );
+
+          const id =
+            fechaISO(inicio);
+
+          if (
+            !mapa[id]
+          ) {
+
+            mapa[id] = {
+              id,
+              inicio,
+              fin,
+              producciones: [],
+            };
+
+          }
+
+          mapa[id]
+            .producciones
+            .push(
+              produccion
+            );
+        }
+      );
+
+      return Object.values(
+        mapa
+      ).sort(
+        (a, b) =>
+          b.inicio -
+          a.inicio
+      );
+
+    },
+    [
+      producciones,
+      filtroSucursal,
+    ]
+  );
+
+
+const semanaHistorialSeleccionada =
+  useMemo(
+    () => {
+
+      if (
+        semanaHistorial
+      ) {
+
+        return (
+          semanasProduccion.find(
+            semana =>
+              semana.id ===
+              semanaHistorial
+          ) ||
+          null
+        );
+
+      }
+
+      /*
+       * Por defecto seleccionamos
+       * la semana más reciente.
+       */
+
+      return (
+        semanasProduccion[0] ||
+        null
+      );
+
+    },
+    [
+      semanasProduccion,
+      semanaHistorial,
+    ]
+  );
+
+
+const resumenHistorial =
+  useMemo(
+    () => {
+
+      if (
+        !semanaHistorialSeleccionada
+      ) {
+        return [];
+      }
+
+      const mapa = {};
+
+      semanaHistorialSeleccionada
+        .producciones
+        .forEach(
+          produccion => {
+
+            const id =
+              produccion.empleadaId ||
+              produccion.empleada ||
+              "sin-empleada";
+
+            if (
+              !mapa[id]
+            ) {
+
+              mapa[id] = {
+                empleadaId: id,
+
+                nombre:
+                  produccion.empleada ||
+                  id,
+
+                totalEmpanadas: 0,
+
+                totalDocenas: 0,
+
+                totalAPagar: 0,
+
+                variedades: {},
+
+                producciones: [],
+              };
+
+            }
+
+            const resumen =
+              mapa[id];
+
+            resumen.producciones
+              .push(
+                produccion
+              );
+
+            resumen.totalEmpanadas +=
+              Number(
+                produccion.totalEmpanadas ||
+                0
+              );
+
+            resumen.totalDocenas +=
+              Number(
+                produccion.totalDocenas ||
+                0
+              );
+
+            Object.entries(
+              produccion.variedades ||
+              {}
+            ).forEach(
+              ([
+                clave,
+                datos,
+              ]) => {
+
+                if (
+                  !resumen
+                    .variedades[
+                      clave
+                    ]
+                ) {
+
+                  resumen
+                    .variedades[
+                      clave
+                    ] = {
+                      nombre:
+                        datos.nombre ||
+                        clave,
+
+                      cantidad: 0,
+
+                      docenas: 0,
+                    };
+
+                }
+
+                resumen
+                  .variedades[
+                    clave
+                  ].cantidad +=
+                  Number(
+                    datos.cantidad ||
+                    0
+                  );
+
+                resumen
+                  .variedades[
+                    clave
+                  ].docenas +=
+                  Number(
+                    datos.docenas ||
+                    0
+                  );
+
+              }
+            );
+
+          }
+        );
+
+
+      Object.values(
+        mapa
+      ).forEach(
+        resumen => {
+
+          /*
+           * Buscamos el precio utilizado
+           * en alguno de los registros.
+           */
+
+          const registro =
+            resumen.producciones
+              .find(
+                item =>
+                  Number(
+                    item.precioDocena
+                  ) > 0
+              );
+
+          const precio =
+            Number(
+              registro?.precioDocena ||
+              0
+            );
+
+          resumen.precioDocena =
+            precio;
+
+          resumen.totalAPagar =
+            resumen.totalDocenas *
+            precio;
+
+        }
+      );
+
+
+      return Object.values(
+        mapa
+      ).sort(
+        (a, b) =>
+          String(
+            a.nombre
+          ).localeCompare(
+            String(
+              b.nombre
+            ),
+            "es"
+          )
+      );
+
+    },
+    [
+      semanaHistorialSeleccionada,
+    ]
+  );
+
+
+const totalHistorialEmpanadas =
+  useMemo(
+    () =>
+      resumenHistorial.reduce(
+        (
+          total,
+          empleada
+        ) =>
+          total +
+          Number(
+            empleada.totalEmpanadas ||
+            0
+          ),
+        0
+      ),
+    [
+      resumenHistorial,
+    ]
+  );
+
+
+const totalHistorialDocenas =
+  useMemo(
+    () =>
+      resumenHistorial.reduce(
+        (
+          total,
+          empleada
+        ) =>
+          total +
+          Number(
+            empleada.totalDocenas ||
+            0
+          ),
+        0
+      ),
+    [
+      resumenHistorial,
+    ]
+  );
+
+
+const totalHistorialPagar =
+  useMemo(
+    () =>
+      resumenHistorial.reduce(
+        (
+          total,
+          empleada
+        ) =>
+          total +
+          Number(
+            empleada.totalAPagar ||
+            0
+          ),
+        0
+      ),
+    [
+      resumenHistorial,
+    ]
+  );
   /* ====================================================
      GUARDAR CONFIGURACIÓN DE SUCURSAL
   ==================================================== */
@@ -4280,6 +4697,426 @@ const totalDeliveryRango =
 
             )}
 
+            {/* ====================================================
+    HISTORIAL DE PRODUCCIÓN
+==================================================== */}
+
+<section className="bg-white rounded-3xl border border-black/5 shadow-sm overflow-hidden">
+
+  <div className="p-6 border-b bg-[#FAFAFA]">
+
+    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+
+      <div>
+
+        <p className="text-sm font-black text-[#2F6B4F] uppercase tracking-[0.18em]">
+          📚 Historial
+        </p>
+
+        <h2 className="text-2xl font-black mt-1">
+          Registro de producción
+        </h2>
+
+        <p className="text-gray-500 mt-2">
+          Elegí una semana para consultar toda la producción registrada.
+        </p>
+
+      </div>
+
+
+      <div className="w-full lg:w-96">
+
+        <label className="block text-sm font-black text-gray-600 mb-2">
+          Semana
+        </label>
+
+        <select
+          value={
+            semanaHistorialSeleccionada?.id ||
+            ""
+          }
+          onChange={e =>
+            setSemanaHistorial(
+              e.target.value
+            )
+          }
+          className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-[#2F6B4F]"
+        >
+
+          {semanasProduccion.length ===
+          0 ? (
+
+            <option value="">
+              No hay semanas registradas
+            </option>
+
+          ) : (
+
+            semanasProduccion.map(
+              semana => (
+
+                <option
+                  key={
+                    semana.id
+                  }
+                  value={
+                    semana.id
+                  }
+                >
+
+                  {fechaISO(
+                    semana.inicio
+                  )}{" "}
+                  →{" "}
+                  {fechaISO(
+                    semana.fin
+                  )}
+
+                </option>
+
+              )
+            )
+
+          )}
+
+        </select>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  {semanaHistorialSeleccionada && (
+
+    <div className="p-6">
+
+      {/* RESUMEN */}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        <div className="bg-[#F8F5EF] rounded-2xl p-5">
+
+          <p className="text-sm text-gray-500 font-bold">
+            Empanadas
+          </p>
+
+          <p className="text-3xl font-black text-[#2F6B4F] mt-1">
+            {totalHistorialEmpanadas}
+          </p>
+
+        </div>
+
+
+        <div className="bg-[#F8F5EF] rounded-2xl p-5">
+
+          <p className="text-sm text-gray-500 font-bold">
+            Docenas
+          </p>
+
+          <p className="text-3xl font-black text-[#2F6B4F] mt-1">
+            {totalHistorialDocenas.toFixed(
+              2
+            )}
+          </p>
+
+        </div>
+
+
+        <div className="bg-[#F8F5EF] rounded-2xl p-5">
+
+          <p className="text-sm text-gray-500 font-bold">
+            Total a pagar
+          </p>
+
+          <p className="text-3xl font-black text-[#7A4E35] mt-1">
+            {dinero(
+              totalHistorialPagar
+            )}
+          </p>
+
+        </div>
+
+      </div>
+
+
+      {/* EMPLEADAS */}
+
+      <div className="mt-6 space-y-5">
+
+        {resumenHistorial.length ===
+        0 ? (
+
+          <div className="rounded-2xl border border-dashed p-8 text-center text-gray-500">
+
+            No hay producción registrada
+            para esta semana.
+
+          </div>
+
+        ) : (
+
+          resumenHistorial.map(
+            resumen => (
+
+              <article
+                key={
+                  resumen.empleadaId
+                }
+                className="rounded-2xl border border-black/5 overflow-hidden"
+              >
+
+                <div className="p-5 bg-[#FAFAFA]">
+
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                    <div>
+
+                      <h3 className="text-xl font-black">
+                        {resumen.nombre}
+                      </h3>
+
+                      <p className="text-sm text-gray-500 mt-1">
+
+                        Precio por docena:{" "}
+
+                        <b>
+                          {dinero(
+                            resumen.precioDocena
+                          )}
+                        </b>
+
+                      </p>
+
+                    </div>
+
+
+                    <div className="flex gap-3">
+
+                      <div className="bg-white rounded-xl px-4 py-3 border">
+
+                        <p className="text-xs text-gray-500">
+                          Empanadas
+                        </p>
+
+                        <p className="text-xl font-black">
+                          {
+                            resumen.totalEmpanadas
+                          }
+                        </p>
+
+                      </div>
+
+
+                      <div className="bg-white rounded-xl px-4 py-3 border">
+
+                        <p className="text-xs text-gray-500">
+                          Docenas
+                        </p>
+
+                        <p className="text-xl font-black">
+                          {Number(
+                            resumen.totalDocenas ||
+                            0
+                          ).toFixed(
+                            2
+                          )}
+                        </p>
+
+                      </div>
+
+
+                      <div className="bg-white rounded-xl px-4 py-3 border">
+
+                        <p className="text-xs text-gray-500">
+                          A pagar
+                        </p>
+
+                        <p className="text-xl font-black text-[#7A4E35]">
+                          {dinero(
+                            resumen.totalAPagar
+                          )}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                {/* VARIEDADES */}
+
+                <div className="p-5">
+
+                  <h4 className="font-black mb-3">
+                    Variedades
+                  </h4>
+
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+
+                    {Object.values(
+                      resumen.variedades
+                    ).map(
+                      variedad => (
+
+                        <div
+                          key={
+                            variedad.nombre
+                          }
+                          className="flex items-center justify-between gap-3 bg-[#F8F5EF] rounded-xl px-4 py-3"
+                        >
+
+                          <span className="font-bold">
+                            {
+                              variedad.nombre
+                            }
+                          </span>
+
+                          <span className="font-black text-[#2F6B4F]">
+                            {
+                              Number(
+                                variedad.cantidad ||
+                                0
+                              )
+                            }
+                          </span>
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+
+                  {/* DETALLE DIARIO */}
+
+                  <details className="mt-5">
+
+                    <summary className="cursor-pointer font-black text-[#2F6B4F]">
+                      Ver registros de esta semana
+                    </summary>
+
+
+                    <div className="mt-4 space-y-3">
+
+                      {resumen.producciones
+                        .sort(
+                          (a, b) => {
+
+                            const fa =
+                              a.fecha?.toDate
+                                ? a.fecha.toDate()
+                                : new Date(
+                                    a.fecha
+                                  );
+
+                            const fb =
+                              b.fecha?.toDate
+                                ? b.fecha.toDate()
+                                : new Date(
+                                    b.fecha
+                                  );
+
+                            return (
+                              fb - fa
+                            );
+
+                          }
+                        )
+                        .map(
+                          (produccion, indice) => (
+
+                            <div
+                              key={
+                                produccion.firebaseId ||
+                                produccion.id ||
+                                indice
+                              }
+                              className="rounded-xl border bg-white p-4"
+                            >
+
+                              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+
+                                <div>
+
+                                  <p className="font-black">
+
+                                    {fechaHora(
+                                      produccion.fecha
+                                    )}
+
+                                  </p>
+
+                                  <p className="text-sm text-gray-500 mt-1">
+
+                                    {
+                                      produccion.totalEmpanadas ||
+                                      0
+                                    }{" "}
+                                    empanadas ·{" "}
+
+                                    {Number(
+                                      produccion.totalDocenas ||
+                                      0
+                                    ).toFixed(
+                                      2
+                                    )}{" "}
+                                    docenas
+
+                                  </p>
+
+                                </div>
+
+
+                                <span
+                                  className={
+                                    produccion.estadoPago ===
+                                    "pagado"
+                                      ? "bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-black"
+                                      : "bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-xs font-black"
+                                  }
+                                >
+
+                                  {produccion.estadoPago ===
+                                  "pagado"
+                                    ? "✓ PAGADO"
+                                    : "PENDIENTE"}
+
+                                </span>
+
+                              </div>
+
+                            </div>
+
+                          )
+                        )}
+
+                    </div>
+
+                  </details>
+
+                </div>
+
+              </article>
+
+            )
+
+          )
+
+        )}
+
+      </div>
+
+    </div>
+
+  )}
+</section>
 
             {/* =============================================
                 EMPLEADAS
