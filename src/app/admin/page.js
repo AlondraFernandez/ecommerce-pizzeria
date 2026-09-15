@@ -338,26 +338,6 @@ if (!isNaN(fecha)) {
 }
 
 
-function esDeHoy(venta) {
-  const fecha =
-    fechaVentaAJS(venta);
-
-  if (!fecha) {
-    return false;
-  }
-
-  const hoy =
-    new Date();
-
-  return (
-    fecha.getFullYear() ===
-      hoy.getFullYear() &&
-    fecha.getMonth() ===
-      hoy.getMonth() &&
-    fecha.getDate() ===
-      hoy.getDate()
-  );
-}
 
 
 /* ======================================================
@@ -1659,53 +1639,6 @@ const totalRango =
       ),
     0
   );
-
-
-const mostradorRango =
-  ventasActivasRango.filter(
-    venta =>
-      (
-        venta.tipo ||
-        venta.type
-      ) ===
-      "local"
-  );
-
-
-const deliveryRango =
-  ventasActivasRango.filter(
-    venta =>
-      (
-        venta.tipo ||
-        venta.type
-      ) ===
-      "delivery"
-  );
-
-
-const totalMostradorRango =
-  mostradorRango.reduce(
-    (total, venta) =>
-      total +
-      Number(
-        venta.total ||
-        0
-      ),
-    0
-  );
-
-
-const totalDeliveryRango =
-  deliveryRango.reduce(
-    (total, venta) =>
-      total +
-      Number(
-        venta.total ||
-        0
-      ),
-    0
-  );
-
 
   /* ====================================================
      RESUMEN DE DELIVERY
