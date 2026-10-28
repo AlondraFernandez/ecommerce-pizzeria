@@ -291,10 +291,12 @@ function fechaVentaAJS(venta) {
 
   /* FECHA STRING */
 
-  const textos = [
-    venta.fechaLocal,
-    venta.fechaCompleta,
-  ];
+ const textos = [
+  venta.fechaLocal,
+  venta.fechaCompleta,
+  venta.fechaServidor,
+  venta.fecha,
+];
 
 
   for (
@@ -350,7 +352,8 @@ export default function AdminPage() {
 
   const { user } =
     useAuth();
-
+  console.log("USUARIO DE AUTH:", user);
+console.log("EMAIL DE AUTH:", user?.email);
   const {
     elegirSucursal,
   } = useSucursal();
@@ -387,7 +390,12 @@ export default function AdminPage() {
   ] = useState(
     fechaISO(new Date())
   );
-
+  const [
+  fechaVentasSeleccionada,
+  setFechaVentasSeleccionada,
+] = useState(
+  fechaISO(new Date())
+);
   const [
     cargando,
     setCargando,
@@ -407,7 +415,10 @@ export default function AdminPage() {
     ventas,
     setVentas,
   ] = useState([]);
-
+   const [
+  ventasPOS,
+  setVentasPOS,
+] = useState([]);
   const [
     cierres,
     setCierres,
@@ -447,7 +458,7 @@ const [
   empleadas,
   setEmpleadas,
 ] = useState([]);
-
+const [, setDatosEmpleadas] = useState({});
 const [
   producciones,
   setProducciones,
@@ -517,11 +528,12 @@ const [
     );
 
 
-  const esAdmin =
-    user?.email
-      ?.toLowerCase() ===
-    ADMIN_EMAIL.toLowerCase();
-
+const esAdmin =
+  user?.email?.trim().toLowerCase() ===
+  ADMIN_EMAIL.trim().toLowerCase();
+console.log("ES ADMIN:", esAdmin);
+console.log("EMAIL CONFIGURADO:", ADMIN_EMAIL);
+console.log("EMAIL USUARIO:", user?.email);
 
   /* ====================================================
      SEGURIDAD
@@ -534,7 +546,7 @@ const [
       }
 
       if (!esAdmin) {
-        router.replace("/");
+       router.replace("/");
       }
     },
     [
@@ -1380,13 +1392,18 @@ setMovimientos(
 
 
             if (!activo) {
-              return;
-            }
+  return;
+}
 
+// Guardar las ventas del POS por separado.
+setVentasPOS(
+  ventasPOSNormalizadas
+);
 
-            setVentas(
-              todasLasVentas
-            );
+// Mantener el listado combinado existente.
+setVentas(
+  todasLasVentas
+);
 
             setCierres(
               cierresData
@@ -1458,43 +1475,29 @@ setMovimientos(
      FILTROS POR SUCURSAL
   ==================================================== */
 
-  const coincideSucursal =
-    useCallback(
-      registro => {
+  const coincideSucursal = useCallback(
+  (registro) => {
+    if (filtroSucursal === "todas") {
+      return true;
+    }
 
-        if (
-          filtroSucursal ===
-          "todas"
-        ) {
-          return true;
-        }
-
-
-        return (
-          registro.sucursalId ===
-            filtroSucursal ||
-          registro.sucursal ===
-            filtroSucursal
-        );
-
-      },
-      [
-        filtroSucursal,
-      ]
+    return (
+      registro.sucursalId === filtroSucursal ||
+      registro.sucursal === filtroSucursal
     );
+  },
+  [filtroSucursal]
+);
 
+const ventasFiltradas = useMemo(
+  () => ventas.filter(coincideSucursal),
+  [ventas, coincideSucursal]
+);
 
-  const ventasFiltradas =
-    useMemo(
-      () =>
-        ventas.filter(
-          coincideSucursal
-        ),
-      [
-        ventas,
-        coincideSucursal,
-      ]
-    );
+const ventasPOSFiltradas = useMemo(
+  () => ventasPOS.filter(coincideSucursal),
+  [ventasPOS, coincideSucursal]
+);
 
 
   const cierresFiltrados =
@@ -1596,7 +1599,7 @@ setMovimientos(
 ==================================================== */
 
 const ventasRango =
-  ventasFiltradas.filter(
+    ventasPOSFiltradas.filter(
     venta => {
       const fecha =
         fechaVentaAJS(venta);
@@ -1639,7 +1642,148 @@ const totalRango =
       ),
     0
   );
+  /* ====================================================
+   VENTAS POS POR DÍA
+==================================================== */
 
+const ventasDiaPOS =
+  ventasPOSFiltradas.filter(venta => {
+    const fecha = fechaVentaAJS(venta);
+
+    return (
+      fecha &&
+      fechaISO(fecha) ===
+        fechaVentasSeleccionada
+    );
+  });
+
+const ventasActivasDiaPOS =
+  ventasDiaPOS.filter(venta =>
+    normalizarTexto(
+      venta.estado || "Activo"
+    ) !== "cancelado"
+  );
+
+const totalDiaPOS =
+  ventasActivasDiaPOS.reduce(
+    (total, venta) =>
+      total +
+      Number(
+        venta.total ||
+        venta.totalFinal ||
+        0
+      ),
+    0
+  );
+
+const unidadesDiaPOS =
+  ventasActivasDiaPOS.reduce(
+    (total, venta) => {
+      const items =
+        Array.isArray(venta.items)
+          ? venta.items
+          : [];
+
+      return (
+        total +
+        items.reduce(
+          (suma, item) =>
+            suma +
+            Number(item.cantidad || 0),
+          0
+        )
+      );
+    },
+    0
+  );
+const totalEfectivoDiaPOS =
+  ventasActivasDiaPOS.reduce((total, venta) => {
+    const medio = normalizarTexto(
+      venta.metodoPago || venta.formaPago || ""
+    );
+
+    return medio.includes("efectivo")
+      ? total + Number(venta.total || venta.totalFinal || 0)
+      : total;
+  }, 0);
+
+const totalTransferenciaDiaPOS =
+  ventasActivasDiaPOS.reduce((total, venta) => {
+    const medio = normalizarTexto(
+      venta.metodoPago || venta.formaPago || ""
+    );
+
+    return medio.includes("transfer")
+      ? total + Number(venta.total || venta.totalFinal || 0)
+      : total;
+  }, 0);
+const resumenRubrosDia = (() => {
+  const rubros = {};
+
+  ventasActivasDiaPOS.forEach(venta => {
+    const items =
+      Array.isArray(venta.items)
+        ? venta.items
+        : [];
+
+    items.forEach(item => {
+      const rubro =
+        item.rubro ||
+        item.categoria ||
+        "Otros";
+
+      const nombre =
+        item.nombre ||
+        "Producto";
+
+      const cantidad =
+        Number(item.cantidad || 0);
+
+      const importe =
+        Number(
+          item.subtotal ??
+          (
+            (
+              Number(item.precio || 0) +
+              Number(item.precioExtra || 0)
+            ) * cantidad
+          )
+        );
+
+      if (!rubros[rubro]) {
+        rubros[rubro] = {
+          rubro,
+          cantidad: 0,
+          importe: 0,
+          productos: {},
+        };
+      }
+
+      rubros[rubro].cantidad += cantidad;
+      rubros[rubro].importe += importe;
+
+      if (!rubros[rubro].productos[nombre]) {
+        rubros[rubro].productos[nombre] = {
+          nombre,
+          cantidad: 0,
+          importe: 0,
+        };
+      }
+
+      rubros[rubro].productos[nombre].cantidad += cantidad;
+      rubros[rubro].productos[nombre].importe += importe;
+    });
+  });
+
+  return Object.values(rubros)
+    .map(rubro => ({
+      ...rubro,
+      productos: Object.values(rubro.productos),
+    }))
+    .sort((a, b) =>
+      a.rubro.localeCompare(b.rubro, "es")
+    );
+})();
   /* ====================================================
      RESUMEN DE DELIVERY
   ==================================================== */
@@ -3181,11 +3325,25 @@ const totalHistorialPagar =
   }
 
 
-  if (!esAdmin) {
+  
+if (!esAdmin) {
+  return (
+    <div className="min-h-screen bg-[#1B120D] text-white flex flex-col items-center justify-center p-6">
+      <h1 className="text-2xl font-bold mb-4">
+        No se reconoció el permiso de administrador
+      </h1>
 
-    return null;
+      <p>
+        Correo de la sesión: {user?.email || "No disponible"}
+      </p>
 
-  }
+      <p className="mt-2">
+        Correo configurado: {ADMIN_EMAIL}
+      </p>
+    </div>
+  );
+}
+
 
 
   /* ====================================================
@@ -3955,47 +4113,277 @@ const totalHistorialPagar =
                   </h2>
 
                 </div>
+                              {/* VENTAS POS POR DÍA */}
 
+                <section className="bg-white rounded-3xl border border-black/5 shadow-sm overflow-hidden">
+                  <div className="p-5 border-b bg-[#F8F5EF] flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-[#2F6B4F]">
+                        Caja · Solo ventas POS
+                      </p>
+                      <h3 className="text-2xl font-black mt-1">
+                        Ventas por día
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Excluye los pedidos realizados desde la web.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="fechaVentasSeleccionada"
+                        className="block text-sm font-bold mb-2"
+                      >
+                        📅 Elegir día
+                      </label>
+                      <input
+                        id="fechaVentasSeleccionada"
+                        type="date"
+                        value={fechaVentasSeleccionada}
+                        onChange={(e) =>
+                          setFechaVentasSeleccionada(e.target.value)
+                        }
+                        className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-3 gap-3 p-5">
+                    <TarjetaResumen
+                      titulo="Total POS del día"
+                      valor={dinero(totalDiaPOS)}
+                      detalle={`${ventasActivasDiaPOS.length} ventas no canceladas`}
+                      icono="💰"
+                    />
+
+                    <TarjetaResumen
+                      titulo="Productos vendidos"
+                      valor={unidadesDiaPOS}
+                      detalle="Unidades registradas"
+                      icono="🍕"
+                    />
+
+                    <TarjetaResumen
+                      titulo="Ventas canceladas"
+                      valor={ventasDiaPOS.filter(
+                        (venta) =>
+                          normalizarTexto(venta.estado || "") === "cancelado"
+                      ).length}
+                      detalle="No se suman al total"
+                      icono="↩️"
+                    />
+                  </div>
+
+                  <div className="p-5 pt-0">
+                    <h4 className="text-lg font-black mb-3">
+                      🧾 Detalle de ventas y productos
+                    </h4>
+
+                    {ventasDiaPOS.length === 0 ? (
+                      <p className="rounded-2xl bg-gray-50 border border-dashed p-6 text-center text-gray-500">
+                        No hay ventas POS registradas para el día seleccionado.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {ventasDiaPOS.map((venta, indice) => {
+                          const cancelada =
+                            normalizarTexto(venta.estado || "Activo") ===
+                            "cancelado";
+
+                          const productos = Array.isArray(venta.items)
+                            ? venta.items
+                            : [];
+
+                          return (
+                            <article
+                              key={`${venta.id || venta.ventaFirebaseId || "venta"}-${indice}`}
+                              className={`rounded-2xl border p-4 ${
+                                cancelada
+                                  ? "border-red-200 bg-red-50/50"
+                                  : "border-gray-200"
+                              }`}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                                <div>
+                                  <p className="font-black text-lg">
+                                    {venta.cliente ||
+                                      venta.customerName ||
+                                      venta.nombreCliente ||
+                                      "Mostrador"}
+                                  </p>
+
+                                  <p className="text-sm text-gray-500 mt-1">
+                                    {venta.hora || venta.hour || "--:--"}
+                                    {" · "}
+                                    {venta.tipo || venta.type || "Local"}
+                                    {" · "}
+                                    {venta.sucursalNombre ||
+                                      venta.sucursalId ||
+                                      venta.sucursal ||
+                                      "Sucursal"}
+                                  </p>
+                                </div>
+
+                                <div className="sm:text-right">
+                                  <p className="text-xl font-black">
+                                    {dinero(
+                                      venta.total || venta.totalFinal || 0
+                                    )}
+                                  </p>
+                                  <span
+                                    className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-black ${
+                                      cancelada
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-green-100 text-green-700"
+                                    }`}
+                                  >
+                                    {venta.estado || "Activo"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 border-t pt-3">
+                                <p className="text-xs uppercase font-black text-gray-500 mb-2">
+                                  Productos
+                                </p>
+
+                                {productos.length === 0 ? (
+                                  <p className="text-sm text-gray-500">
+                                    Esta venta no tiene productos detallados guardados.
+                                  </p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {productos.map((item, itemIndex) => (
+                                      <div
+                                        key={`${item.nombre || "producto"}-${itemIndex}`}
+                                        className="flex flex-col sm:flex-row sm:justify-between gap-1 rounded-xl bg-gray-50 px-3 py-2"
+                                      >
+                                        <div>
+                                          <p className="font-bold">
+                                            {Number(item.cantidad || 0)} ×{" "}
+                                            {item.nombre || "Producto"}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            Rubro:{" "}
+                                            {item.rubro ||
+                                              item.categoria ||
+                                              "Otros"}
+                                          </p>
+                                        </div>
+
+                                        <p className="font-black">
+                                          {dinero(
+                                            item.subtotal ??
+                                              ((Number(item.precio || 0) +
+                                                Number(item.precioExtra || 0)) *
+                                                Number(item.cantidad || 0))
+                                          )}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* RESUMEN DETALLADO POR RUBRO */}
+
+                <section className="bg-white rounded-3xl border border-black/5 shadow-sm overflow-hidden">
+                  <div className="p-5 border-b">
+                    <h3 className="text-xl font-black">
+                      📊 Resumen detallado por rubro
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Productos y cantidades vendidos en el día seleccionado.
+                    </p>
+                  </div>
+
+                  {resumenRubrosDia.length === 0 ? (
+                    <p className="p-5 text-gray-500">
+                      No hay productos para resumir en esa fecha.
+                    </p>
+                  ) : (
+                    <div className="p-5 space-y-4">
+                      {resumenRubrosDia.map((rubro) => (
+                        <article
+                          key={rubro.rubro}
+                          className="rounded-2xl border overflow-hidden"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:justify-between gap-2 bg-[#F8F5EF] p-4">
+                            <div>
+                              <h4 className="font-black text-lg">
+                                {rubro.rubro}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                {rubro.cantidad} unidades
+                              </p>
+                            </div>
+
+                            <p className="text-lg font-black text-[#2F6B4F]">
+                              {dinero(rubro.importe)}
+                            </p>
+                          </div>
+
+                          <div className="p-4 space-y-2">
+                            {rubro.productos.map((producto) => (
+                              <div
+                                key={producto.nombre}
+                                className="flex items-center justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0"
+                              >
+                                <span className="font-medium">
+                                  {producto.nombre}
+                                  <span className="text-sm text-gray-500">
+                                    {" "}· {producto.cantidad} u.
+                                  </span>
+                                </span>
+
+                                <span className="font-bold whitespace-nowrap">
+                                  {dinero(producto.importe)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <TarjetaResumen
+    titulo="Ventas del día seleccionado"
+    valor={ventasActivasDiaPOS.length}
+    detalle="Operaciones POS no canceladas"
+    icono="🧾"
+  />
 
-                  <TarjetaResumen
-                    titulo="Ventas hoy"
-                    valor={
-                      ventasHoy.length
-                    }
-                    detalle="Operaciones"
-                    icono="🧾"
-                  />
+  <TarjetaResumen
+    titulo="Total del día"
+    valor={dinero(totalDiaPOS)}
+    detalle="Solo ventas POS"
+    icono="💰"
+  />
 
-                  <TarjetaResumen
-                    titulo="Total hoy"
-                    valor={dinero(
-                      totalVentasHoy
-                    )}
-                    detalle="Sin canceladas"
-                    icono="💰"
-                  />
+  <TarjetaResumen
+    titulo="Efectivo"
+    valor={dinero(totalEfectivoDiaPOS)}
+    detalle="Solo ventas POS"
+    icono="💵"
+  />
 
-                  <TarjetaResumen
-                    titulo="Efectivo"
-                    valor={dinero(
-                      totalEfectivoHoy
-                    )}
-                    detalle="Hoy"
-                    icono="💵"
-                  />
-
-                  <TarjetaResumen
-                    titulo="Transferencia"
-                    valor={dinero(
-                      totalTransferenciaHoy
-                    )}
-                    detalle="Hoy"
-                    icono="📲"
-                  />
-
-                </div>
+  <TarjetaResumen
+    titulo="Transferencias"
+    valor={dinero(totalTransferenciaDiaPOS)}
+    detalle="Solo ventas POS"
+    icono="📲"
+  />
+</div>
 
 
                 <section className="bg-white rounded-3xl border border-black/5 shadow-sm overflow-hidden">
